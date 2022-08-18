@@ -16,37 +16,46 @@ from ttkthemes import ThemedTk
 
 load_dotenv()
 
-## Get search query
-print()
-
+### create main window for GUI
 window = ThemedTk(theme = "breeze")
 window.title("Tweet Sentiment: A Program")
 window.geometry("780x340")
 
+### Title and one tab objects
 tab_parent = ttk.Notebook(window)
 tab1 = ttk.Frame(tab_parent)
 
+## title
 tab_parent.add(tab1, text = "Sentiment Anlysis")
-
 tab_parent.pack(expand=1, fill="both")
+
+## labels
 ttk.Label(tab1, text="Tweet Analysis", font=("Harlow Solid Italic",15)).grid(row=0,column=1)
 
+## label 1
 ttk.Label(tab1, text="User Search", font=("Times New Roman", 15)).grid(column=0,row=5, padx=10,pady=10)
+## label 2
 ttk.Label(tab1, text="Phrase Search", font=("Times New Roman", 15)).grid(column=0,row=6, padx=10,pady=10)
 
+## label vars
 user_var = tkinter.StringVar()
 phrase_var = tkinter.StringVar()
 
 tab_parent.pack(expand=1,fill="both")
+
+## run main window
 window.mainloop()
 
+### get phrase to analyze from user
 user_input = input("Phrase to analyze:\t")
+
+## if phrase starts with "@", analyze last tweet of user
 if not user_input.startswith("@"):
     Tweets_to_analyze = int(input("Tweets to anlayze:\t"))
     iterations = int(input("Iterations:\t\t"))
 print("-------------------------------------------------------")
 
-##Authorize Twitter Clients
+##Authorize Twitter Clients via class
 class twitterclient(object):
     
     def __init__(self):
@@ -54,12 +63,12 @@ class twitterclient(object):
         self.auth = tweepy.OAuth2BearerHandler(os.environ.get('Bearer_token'))
         self.api = tweepy.API(self.auth)
 
-    ## Clean tweets of hyperlinks
+    ## first func, Clean tweets of hyperlinks
     def clean_tweet(self, tweet):
     
         return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
 
-    ## Analyze tweets for sentiment
+    ## Second func, Analyze tweets for sentiment
     def get_tweet_sentiment(self, tweet):
 
         ## Use textblob to analyze sentiment
@@ -71,13 +80,13 @@ class twitterclient(object):
         else:
             return 'negative'
     
-    ##get retweet count
+    ## third func, get retweet count
     def get_retweet_count(self, tweet):
         
         count = self.api.get_status(tweet)
         return count
 
-    ##get last tweet of user
+    ## fourth func, get last tweet of user
     def get_last_tweet(self,account):
         
         tweets = []
@@ -102,10 +111,13 @@ class twitterclient(object):
 
 
 
-    ## retrieve tweets
+    ## fifth func, retrieve tweets
     def get_tweets(self, query, count= 5):
+        
+        ## create tweet list
         tweets = []
 
+        ## get tweets containing phrase
         try:
             fetched_tweets = self.api.search_tweets(q=query, count = count, tweet_mode = 'extended')
             for tweet in fetched_tweets:
@@ -125,7 +137,11 @@ class twitterclient(object):
 
 ## Get tweets then add them to positive or negative tweets based on sentiment
 def main():
+    
+    ## Oauth
     api = twitterclient()
+    
+    ## if input starts with
     if user_input.startswith('@'):
         print("-------------------------------------------------------")
         api.get_last_tweet(user_input)
