@@ -7,19 +7,19 @@ from time import sleep
 import tweepy
 from tweepy import OAuthHandler
 import textblob
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import os
 import pytwits as pt
 import streamlit as st
 
-load_dotenv()
+# load_dotenv()
 
 ##Authorize Twitter Clients via class
 class twitterclient(object):
     
     def __init__(self):
     
-        self.auth = tweepy.OAuth2BearerHandler(os.environ.get('Bearer_token'))
+        self.auth = tweepy.OAuth2BearerHandler(bearer_token='AAAAAAAAAAAAAAAAAAAAAJnleQEAAAAA7BqokH6Q506cB%2FfPDUNaL4%2F8slw%3D0kh9sCDAEVYZJg43oYlVyYRyxwjQt3GrrfQI5JdZ6ITpWV9rAW')
         self.api = tweepy.API(self.auth)
 
     ## first func, Clean tweets of hyperlinks
@@ -84,7 +84,10 @@ class twitterclient(object):
                 parsed_tweet['text'] = tweet.full_text
                 parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.full_text)
                 parsed_tweet['retweet_count'] = tweet.retweet_count
-
+                parsed_tweet['user'] = tweet.user
+                parsed_tweet['screen_name'] = tweet.user.screen_name
+                parsed_tweet['profile_pic'] = tweet.user.profile_image_url
+                
                 if tweet.retweet_count > 0:
                     if parsed_tweet not in tweets:
                         tweets.append(parsed_tweet)

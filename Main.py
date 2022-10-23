@@ -7,11 +7,15 @@ import yfinance as yf
 import requests as re
 import pytwits as pt
 import plotly
+import tweepy
 from TwitterSentiment import twitterclient
-import dotenv
+#import dotenv
 
 ### Load Bearer token
-dotenv.load_dotenv()
+#dotenv.load_dotenv()
+
+### Page config (Title at top and icon at top )
+st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend")
 
 ### Dashboard Title
 st.title("Dashboard")
@@ -20,22 +24,20 @@ st.title("Dashboard")
 st.sidebar.title("Options:")
 
 ### Sidebar Dropdown
-option = st.sidebar.selectbox("Select Dashboard:", ("Twitter", "Wallstreetbets", "StockTwits", "Chart", "Pattern"))
+option = st.sidebar.selectbox("Select Dashboard:", ("Twitter", "Stocks"))
 
-### Sidebar Search bar
-search_option = st.sidebar.text_input("Search a ticker:")
+### Sidebar user Search bar
 
-### subheader for stock title
-st.subheader("Phrase: " + search_option.upper())
+
 
 ### Use the class from TwitterSentiment file to get sentiment of tweets
 def main_twitter():
     
     ## Oauth
     api = twitterclient()
-
+    
     ### for each tweet in tweets, if tweet is positive, add to ptweets, if negative, add to ntweets
-    tweets = api.get_tweets(query = search_option, count = 3000)
+    tweets = api.get_tweets(query = search, count = 3000)
     ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive']
     ntweets = [tweet for tweet in tweets if tweet['sentiment'] == 'negative']
 
@@ -50,13 +52,34 @@ def main_twitter():
     for tweet in tweets:
 
         ## Markdown
-        st.markdown(tweet, unsafe_allow_html=False)
-
+        st.image(tweet["profile_pic"])
+        st.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+        # st.markdown(tweet, unsafe_allow_html=False)
+        
         ## Text
-        st.text(tweet)
+        st.text(tweet["text"])
 
         ## Line
         st.text("--------------------------------------------------------")
+
+
+def for_users():
+        
+    ## Oauth
+    auth = tweepy.OAuth2BearerHandler(bearer_token='AAAAAAAAAAAAAAAAAAAAAJnleQEAAAAA7BqokH6Q506cB%2FfPDUNaL4%2F8slw%3D0kh9sCDAEVYZJg43oYlVyYRyxwjQt3GrrfQI5JdZ6ITpWV9rAW')
+    api = tweepy.API(auth)
+
+    # Gets user's last tweet
+    tweets = api.user_timeline(screen_name=search[1:], count=1, tweet_mode='extended')
+
+    # Must be formatted into for loop or a new variable must be set equal to index of it because "user_timeline" returns a list.
+    for tweet in tweets:
+
+        st.markdown(tweet.user.screen_name + "'s most recent tweet/reply was:")
+        st.markdown('"' + tweet.full_text + '"')
+
+
+
 
 
 ### Sidebar dropdown option for twitter, display twitter stats
@@ -65,31 +88,54 @@ if option == "Twitter":
     ## subheader
     st.subheader("Twitter Stats:")
 
+    ### Sidebar dropdown for types of searching
+    search = st.sidebar.text_input("Search a phrase:")
+    
+    ### subheader for stock title
+    st.subheader(f"Phrase:" + " " + search.upper())
+
     ## use twitter function to get tweets, or display an error message
-    try:
-        main_twitter()
-    except TypeError as e:
-        st.text("Search for a stock!")
+    if search.startswith('@'):
+         for_users()
+    else:
+        try:
+            main_twitter()
+        except TypeError as e:
+            st.text("Search for a phrase!")
+
+if option == "Stocks":
+    st.subheader("Stock Trends")
+    ticker = st.sidebar.text_input("Check a Stock:", value="TSLA", max_chars=5)
+    st.markdown("Ticker: " + ticker)  # Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
+    st.image(f"https://finviz.com/chart.ashx?t={ticker}")
+
+
+
 
 ### wallstreetbets 
-if option == "Wallstreetbets":
-    st.subheader("Wallstreetbets Mentions:")
+# if option == "Wallstreetbets":
+
+    ### subheader
+    # st.subheader("Wallstreetbets Mentions:")
 
 ### Stocktwits mentions of stock
-if option == "StockTwits":
-    st.subheader("Stocktwits Mentions:")
+# if option == "StockTwits":
 
-    stocktwit = pt.StockTwits()
-    symbols = stocktwit.search(path='search/symbols', q=search_option.upper())
-    stock = symbols[0]
+#     ### subheader
+#     st.subheader("Stocktwits Mentions:")
 
-### display charts and relevant information
-if option == "Chart":
-    st.subheader("Charts:")
-    stock = yf.download(search_option, interval="1d", period="1y")["Close"]
-    st.line_chart(stock)
+#     stocktwit = pt.StockTwits()
+#     symbols = stocktwit.search(path='search/symbols', q=search_option.upper())
+#     stock = symbols[0]
+
+# ### display charts and relevant information
+# if option == "Chart":
+
+#     ### subheader
+#     st.subheader("Charts:")
+#     stock = yf.download(search_option, interval="1d", period="1y")["Close"]
+#     st.line_chart(stock)
 
 ### display patterns and options
-if option == "Pattern":
-    st.subheader("Patterns")
-
+# if option == "Pattern":
+#     st.subheader("Patterns")
