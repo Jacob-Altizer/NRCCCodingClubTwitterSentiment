@@ -9,10 +9,10 @@ import pytwits as pt
 import plotly
 import tweepy
 from TwitterSentiment import twitterclient
-#import dotenv
+import dotenv
 
 ### Load Bearer token
-#dotenv.load_dotenv()
+dotenv.load_dotenv()
 
 ### Page config (Title at top and icon at top )
 st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend")
@@ -41,26 +41,29 @@ def main_twitter():
     ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive']
     ntweets = [tweet for tweet in tweets if tweet['sentiment'] == 'negative']
 
+
     ### Calculate pos, neg, and neutral tweets and display information
-    st.write("-------------------------------------------------------")
-    st.text("Positive tweets percentage:\t {} %".format(100*len(ptweets)/len(tweets)))
-    st.text("Negative tweets percentage:\t {} %".format(100*len(ntweets)/len(tweets)))
-    st.text("Neutral tweets percentage: \t {} %".format(100*(len(tweets) -(len( ntweets )+len( ptweets)))/len(tweets)))
-    st.text("--------------------------------------------------------")
+    with st.container():
+        st.write("---")
+        st.text("Positive tweets percentage:\t {:.2f} %".format(100*len(ptweets)/len(tweets)))
+        st.text("Negative tweets percentage:\t {:.2f} %".format(100*len(ntweets)/len(tweets)))
+        st.text("Neutral tweets percentage: \t {:.2f} %".format(100*(len(tweets) -(len( ntweets )+len( ptweets)))/len(tweets)))
+        st.write("---")
 
     ### display tweet text
     for tweet in tweets:
 
-        ## Markdown
-        st.image(tweet["profile_pic"])
-        st.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
-        # st.markdown(tweet, unsafe_allow_html=False)
-        
-        ## Text
-        st.text(tweet["text"])
+        with st.container():
+            ## Markdown
+            st.image(tweet["profile_pic"])
+            st.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+            # st.markdown(tweet, unsafe_allow_html=False)
+            
+            ## Text
+            st.write(tweet["text"])
 
-        ## Line
-        st.text("--------------------------------------------------------")
+            ## Line
+            st.write("---")
 
 
 def for_users():
@@ -104,11 +107,45 @@ if option == "Twitter":
             st.text("Search for a phrase!")
 
 if option == "Stocks":
-    st.subheader("Stock Trends")
-    ticker = st.sidebar.text_input("Check a Stock:", value="TSLA", max_chars=5)
-    st.markdown("Ticker: " + ticker)  # Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
-    st.image(f"https://finviz.com/chart.ashx?t={ticker}")
 
+    with st.container():
+
+        st.subheader("Stock Trends")
+        ticker = st.sidebar.text_input("Check a Stock:", value="TSLA", max_chars=5)
+        st.markdown("Ticker: " + ticker)  # Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
+        st.image(f"https://finviz.com/chart.ashx?t={ticker}")
+
+    with st.container():
+        ## Oauth
+        api = twitterclient()
+        
+        ### for each tweet in tweets, if tweet is positive, add to ptweets, if negative, add to ntweets
+        tweets = api.get_tweets(query = ticker, count = 3000)
+        ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive']
+        ntweets = [tweet for tweet in tweets if tweet['sentiment'] == 'negative']
+
+        ### Calculate pos, neg, and neutral tweets and display information
+        with st.container():
+            st.write("---")
+            st.text("Positive tweets percentage:\t {:.2f} %".format(100*len(ptweets)/len(tweets)))
+            st.text("Negative tweets percentage:\t {:.2f} %".format(100*len(ntweets)/len(tweets)))
+            st.text("Neutral tweets percentage: \t {:.2f} %".format(100*(len(tweets) -(len( ntweets )+len( ptweets)))/len(tweets)))
+            st.write("---")
+
+        ### display tweet text
+        for tweet in tweets:
+
+            with st.container():
+                ## Markdown
+                st.image(tweet["profile_pic"])
+                st.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+                # st.markdown(tweet, unsafe_allow_html=False)
+                
+                ## Text
+                st.write(tweet["text"])
+
+                ## Line
+                st.write("---")
 
 
 

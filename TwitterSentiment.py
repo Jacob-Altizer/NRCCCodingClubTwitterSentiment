@@ -7,19 +7,19 @@ from time import sleep
 import tweepy
 from tweepy import OAuthHandler
 import textblob
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import os
 import pytwits as pt
 import streamlit as st
 
-# load_dotenv()
+load_dotenv()
 
 ##Authorize Twitter Clients via class
 class twitterclient(object):
     
     def __init__(self):
     
-        self.auth = tweepy.OAuth2BearerHandler(bearer_token='AAAAAAAAAAAAAAAAAAAAAJnleQEAAAAA7BqokH6Q506cB%2FfPDUNaL4%2F8slw%3D0kh9sCDAEVYZJg43oYlVyYRyxwjQt3GrrfQI5JdZ6ITpWV9rAW')
+        self.auth = tweepy.OAuth2BearerHandler(os.environ.get('Bearer_token'))
         self.api = tweepy.API(self.auth)
 
     ## first func, Clean tweets of hyperlinks
