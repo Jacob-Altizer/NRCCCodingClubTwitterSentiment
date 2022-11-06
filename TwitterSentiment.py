@@ -69,9 +69,8 @@ class twitterclient(object):
 
 
 
-
     ## fifth func, retrieve tweets
-    def get_tweets(self, query, count= 100):
+    def get_tweets(self, query, count=3000):
         
         ## create tweet list
         tweets = []
@@ -87,6 +86,7 @@ class twitterclient(object):
                 parsed_tweet['user'] = tweet.user
                 parsed_tweet['screen_name'] = tweet.user.screen_name
                 parsed_tweet['profile_pic'] = tweet.user.profile_image_url
+                parsed_tweet['num_likes'] = tweet.favorite_count
                 
                 if tweet.retweet_count > 0:
                     if parsed_tweet not in tweets:
