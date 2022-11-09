@@ -8,9 +8,9 @@ import requests as re
 import pytwits as pt
 import plotly
 import tweepy
+import matplotlib.pyplot as plt
 from TwitterSentiment import twitterclient
 import dotenv
-import matplotlib.pyplot as plt
 
 ### Load Bearer token
 dotenv.load_dotenv()
@@ -54,7 +54,7 @@ def main_twitter():
 
     ## Oauth
     api = twitterclient()
-
+    
     try:
         ### for each tweet in tweets, if tweet is positive, add to ptweets, if negative, add to ntweets
         tweets = api.get_tweets(query = search, count = 3000)
@@ -93,16 +93,20 @@ def main_twitter():
         # Displays the user's profile pic, username, number of likes, and tweet at the top of the page.  If all tweets found have 0 likes (max_likes = 0), then it will display that all tweets found have 0 likes 
         try:
             if max_likes >= 1:
-                st.write("---")
-                st.write("The tweet with the most likes was:")
-                ## Markdown
-                st.image(profile_pic_most_likes)
-                st.markdown('Username: ' + screen_name_most_likes, unsafe_allow_html=False)
-                st.write(f"Number of likes: {max_likes}")
-                # st.markdown(tweet, unsafe_allow_html=False)
-                        
-                ## Text
-                st.write(tweet["text"])
+
+                with st.container():
+
+                    create_tweet_styles()
+
+                    st.write("The tweet with the most likes was:")
+                    ## Markdown
+                    st.image(profile_pic_most_likes)
+                    st.markdown('Username: ' + screen_name_most_likes, unsafe_allow_html=False)
+                    st.write(f"Number of likes: {max_likes}")
+                    # st.markdown(tweet, unsafe_allow_html=False)
+                            
+                    ## Text
+                    st.write(tweet["text"])
             else:
                 st.write("---")
                 st.write("All tweets found have 0 likes.")
@@ -112,24 +116,27 @@ def main_twitter():
         # Does same as above, but for user with the most retweets.
         try:
             if max_retweets >= 1:
-                st.write("---")
-                st.write("The tweet with the most retweets was:")
-                ## Markdown
-                st.image(profile_pic_most_retweets)
-                st.markdown('Username: ' + screen_name_most_retweets, unsafe_allow_html=False)
-                st.write(f"Number of likes: {num_likes_most_retweets}")
-                st.write(f"Number of retweets: {max_retweets}")
-                # st.markdown(tweet, unsafe_allow_html=False)
-                        
-                ## Text
-                st.write(tweet["text"])
+
+                with st.container():
+
+                    create_tweet_styles()
+
+                    st.write("The tweet with the most retweets was:")
+                    ## Markdown
+                    st.image(profile_pic_most_retweets)
+                    st.markdown('Username: ' + screen_name_most_retweets, unsafe_allow_html=False)
+                    st.write(f"Number of likes: {num_likes_most_retweets}")
+                    st.write(f"Number of retweets: {max_retweets}")
+                    # st.markdown(tweet, unsafe_allow_html=False)
+                            
+                    ## Text
+                    st.write(tweet["text"])
             else:
                 st.write("---")
                 st.write("All tweets found have 0 retweets.")
         except UnboundLocalError:
             pass
 
-        
         st.write("---")
         positive_tweets_percent = (100*len(ptweets)/len(tweets))
         negative_tweets_percent = (100*len(ntweets)/len(tweets))
@@ -174,26 +181,10 @@ def main_twitter():
                 ## Text
                 st.write(tweet["text"])
 
-
     except:
+
         st.subheader("There were no tweets found.")
         st.write("---")
-
-    ### for each tweet in tweets, if tweet is positive, add to ptweets, if negative, add to ntweets
-    # tweets = api.get_tweets(query = search, count = 3000)
-    # ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive']
-    # ntweets = [tweet for tweet in tweets if tweet['sentiment'] == 'negative']
-
-
-    # ### Calculate pos, neg, and neutral tweets and display information
-    # st.write("---")
-    # st.text("Positive tweets percentage:\t {:.2f} %".format(100*len(ptweets)/len(tweets)))
-    # st.text("Negative tweets percentage:\t {:.2f} %".format(100*len(ntweets)/len(tweets)))
-    # st.text("Neutral tweets percentage: \t {:.2f} %".format(100*(len(tweets) -(len( ntweets )+len( ptweets)))/len(tweets)))
-    # st.write("---")
-
-
-
 
 
 def for_users():
@@ -201,15 +192,25 @@ def for_users():
     ## Oauth
     auth = tweepy.OAuth2BearerHandler('Bearer_token')
     api = tweepy.API(auth)
+    twitterapi = twitterclient()
 
-    # Gets user's last tweet
-    tweets = api.user_timeline(screen_name=search[1:], count=1, tweet_mode='extended')
+    try:
+        # Gets user's last tweet
+        tweets = api.user_timeline(screen_name=search[1:], count=1, tweet_mode='extended')
 
-    # Must be formatted into for loop or a new variable must be set equal to index of it because "user_timeline" returns a list.
-    for tweet in tweets:
+        # Must be formatted into for loop or a new variable must be set equal to index of it because "user_timeline" returns a list.
+        for tweet in tweets:
 
-        st.markdown(f"{tweet.user.screen_name}'s most recent tweet/reply was:")
-        st.markdown(f'{tweet.full_text}')
+            # Getting the tweet sentiment using the function from the TwitterSentiment file.
+            tweet_sentiment = twitterapi.get_tweet_sentiment(tweet.full_text)
+
+            st.markdown(tweet.user.screen_name + "'s most recent tweet/reply was:")
+            st.markdown('"' + tweet.full_text + '"')
+            st.markdown("This tweet was determined to have a " + tweet_sentiment + " sentiment by our natural language processor.")
+    except:
+        st.subheader("That profile could not be found.")
+
+
 
 
 
@@ -232,26 +233,23 @@ if option == "Twitter":
         try:
             main_twitter()
         except TypeError as e:
-            st.text("Search for a phrase!")
+            st.text(e)
 
 if option == "Stocks":
 
-    ## subheader
-    st.subheader("Stock Trends:")
+    st.subheader("Stock Trends")
 
-    ## Sidebar input for stock ticker
-    search = st.sidebar.text_input("Check out a Stock:", value="TSLA", max_chars=5)
+    search = st.sidebar.text_input("Check a Stock:", value="TSLA", max_chars=5)
+    company_name = yf.Ticker(search).info['longName']
 
-    ## displays searched ticker on page
-    st.markdown("Ticker: " + search)  # Incorporate a function to change it to company name instead of their ticker. Makes more user-friendly for people not "stock saavy"
-
-    ## inserts ticker into finviz.com url to get chart
+    st.markdown("Ticker: " + search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
+    st.markdown("Company Name: " + company_name) # NOTE: Change company name to ticker...might need to incorporate some sort of searching a database (of all companies/tickers) function
     st.image(f"https://finviz.com/chart.ashx?t={search}")
 
     try:
         main_twitter()
     except TypeError as e:
-        st.text("Search for a stock ticker!")
+        print(e)
 
 
 
