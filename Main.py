@@ -1,41 +1,18 @@
-from msilib.schema import Error
-from requests import request
 import streamlit as st
-# import numpy as np
-# import pandas as pd
 import yfinance as yf
-import requests as re
-# import requests.auth
-import pytwits as pt
-# import plotly
 import tweepy
 import matplotlib.pyplot as plt
 from TwitterSentiment import twitterclient
-# import TwitterSentiment
 import dotenv
 import os
 import praw
 import textblob
 
-
 ### Load Bearer token
 dotenv.load_dotenv()
 
 ### Page config (Title at top and icon at top )
-st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend")
-
-### Dashboard Title
-st.title("Dashboard")
-
-### Set default search term
-st.subheader("Search: ")
-search1 = st.text_input(" ")
-
-### Sidebar Title
-st.sidebar.title("Options:")
-
-### Sidebar Dropdown
-option = st.sidebar.selectbox("Select Dashboard:", ("Twitter", "Stocks", "Reddit"))
+st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend", layout='wide')
 
 ### uses css to create styles for each tweet
 def create_tweet_styles():
@@ -163,7 +140,7 @@ def main_twitter():
             neutral_explode = 0.05
         explode = [pos_explode,neg_explode,neutral_explode]
         fig1,ax1 = plt.subplots()
-        ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+        ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, textprops=dict(color="w"))
         ax1.axis('equal')
         fig1.set_facecolor('#0e1117')
     
@@ -278,11 +255,63 @@ def pie_Graph(texts):
         neutral_explode = 0.05
     explode = [pos_explode,neg_explode,neutral_explode]
     fig1,ax1 = plt.subplots()
-    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, textprops=dict(color="w"))
     ax1.axis('equal')
     fig1.set_facecolor('#0e1117')
 
     st.pyplot(fig1)
+
+def sibar_Stocks():
+    st.sidebar.write("---")
+    st.sidebar.subheader("Stock Analysis: ")
+
+    stock_search = st.sidebar.text_input("Ticker: ", value="TSLA", max_chars=5)
+
+    st.sidebar.markdown("Ticker: " + stock_search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
+
+    def sidebar_tweets(tweets):
+
+        st.sidebar.image(f"https://finviz.com/chart.ashx?t={stock_search}")
+            ## Oauth
+        api = twitterclient()
+        tweets = api.get_tweets(query = stock_search, count = 300)
+        try:
+            for tweet in tweets:
+
+                with st.container():
+
+                    create_tweet_styles()
+
+                    ## Markdown
+                    st.sidebar.image(tweet["profile_pic"])
+                    st.sidebar.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+                    st.sidebar.write(f"Number of likes: {tweet['num_likes']}")
+                    # st.markdown(tweet, unsafe_allow_html=False)
+                    
+                    ## Text
+                    st.sidebar.write(tweet["text"])
+                    st.sidebar.write("---")
+
+        except:
+
+            st.subheader("There were no tweets found.")
+            st.write("---")
+
+    sidebar_tweets(stock_search)
+
+
+### Dashboard Title
+st.title("Dashboard")
+
+### Set default search term
+st.subheader("Search: ")
+search1 = st.text_input(" ")
+
+### Sidebar Title
+st.sidebar.title("Options:")
+
+### Sidebar Dropdown
+option = st.sidebar.selectbox("Select Dashboard:", ("Twitter", "Reddit"))
 
 ### Sidebar dropdown option for twitter, display twitter stats
 if option == "Twitter":
@@ -304,23 +333,6 @@ if option == "Twitter":
             main_twitter()
         except TypeError as e:
             st.text(e)
-
-### Sidebar Drop down option for stocks, display stock information and data
-if option == "Stocks":
-
-    st.subheader("Stock Trends")
-
-    search = st.sidebar.text_input("Check a Stock:", value="TSLA", max_chars=5)
-    company_name = yf.Ticker(search).info['longName']
-
-    st.markdown("Ticker: " + search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
-    st.markdown("Company Name: " + company_name) # NOTE: Change company name to ticker...might need to incorporate some sort of searching a database (of all companies/tickers) function
-    st.image(f"https://finviz.com/chart.ashx?t={search}")
-
-    try:
-        main_twitter()
-    except TypeError as e:
-        print(e)
 
 ## Reddit
 if option == "Reddit":
@@ -374,16 +386,43 @@ if option == "Reddit":
         st.write("Search for something!")
 
 
+### Sidebar stock analysis
 
+    st.sidebar.write("---")
+    st.sidebar.subheader("Stock Analysis: ")
 
+    stock_search = st.sidebar.text_input("Ticker: ", value="TSLA", max_chars=5)
 
+    st.sidebar.markdown("Ticker: " + stock_search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
 
+    def sidebar_tweets(tweets):
 
+        st.sidebar.image(f"https://finviz.com/chart.ashx?t={stock_search}")
+            ## Oauth
+        api = twitterclient()
+        tweets = api.get_tweets(query = stock_search, count = 300)
+        try:
+            for tweet in tweets:
 
-# ### display charts and relevant information
-# if option == "Chart":
+                with st.container():
 
-#     ### subheader
-#     st.subheader("Charts:")
-#     stock = yf.download(search_option, interval="1d", period="1y")["Close"]
-#     st.line_chart(stock)
+                    create_tweet_styles()
+
+                    ## Markdown
+                    st.sidebar.image(tweet["profile_pic"])
+                    st.sidebar.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+                    st.sidebar.write(f"Number of likes: {tweet['num_likes']}")
+                    # st.markdown(tweet, unsafe_allow_html=False)
+                    
+                    ## Text
+                    st.sidebar.write(tweet["text"])
+                    st.sidebar.write("---")
+
+        except:
+
+            st.subheader("There were no tweets found.")
+            st.write("---")
+
+    sidebar_tweets(stock_search)
+
+sibar_Stocks()
