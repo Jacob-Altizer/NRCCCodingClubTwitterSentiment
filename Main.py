@@ -14,24 +14,6 @@ dotenv.load_dotenv()
 ### Page config (Title at top and icon at top )
 st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend", layout='wide')
 
-### uses css to create styles for each tweet
-def create_tweet_styles():
-    ## CSS selectors created by manually grabbing class from inpsect element in browser / all containers will have the same auto-generated class in the html
-    tweet_styles = '''
-    <style>
-        /* container encompasing tweet */
-        div.css-1ex6qxy.e1tzin5v0 div.css-1ex6qxy.e1tzin5v0 {
-            background-color: rgb(34, 42, 64);
-            padding: 0px;
-            overflow-wrap: break-word;
-            border: 2px solid;
-            border-radius: 10px;
-        }
-
-    </style>
-    '''
-    st.markdown(tweet_styles, unsafe_allow_html=True)
-
 ### Use the class from TwitterSentiment file to get sentiment of tweets
 def main_twitter():
 
@@ -79,8 +61,6 @@ def main_twitter():
 
                 with st.container():
 
-                    create_tweet_styles()
-
                     st.write("The tweet with the most likes was:")
                     ## Markdown
                     st.image(profile_pic_most_likes)
@@ -101,8 +81,6 @@ def main_twitter():
             if max_retweets >= 1:
 
                 with st.container():
-
-                    create_tweet_styles()
 
                     st.write("The tweet with the most retweets was:")
                     ## Markdown
@@ -152,8 +130,6 @@ def main_twitter():
         for tweet in tweets:
 
             with st.container():
-
-                create_tweet_styles()
 
                 ## Markdown
                 st.image(tweet["profile_pic"])
@@ -280,8 +256,6 @@ def sibar_Stocks():
 
                 with st.container():
 
-                    create_tweet_styles()
-
                     ## Markdown
                     st.sidebar.image(tweet["profile_pic"])
                     st.sidebar.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
@@ -405,8 +379,6 @@ if option == "Reddit":
             for tweet in tweets:
 
                 with st.container():
-
-                    create_tweet_styles()
 
                     ## Markdown
                     st.sidebar.image(tweet["profile_pic"])
