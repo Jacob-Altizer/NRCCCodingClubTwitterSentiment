@@ -1,34 +1,18 @@
-from msilib.schema import Error
-from requests import request
 import streamlit as st
-import numpy as np
-import pandas as pd
 import yfinance as yf
-import requests as re
-import pytwits as pt
-import plotly
 import tweepy
 import matplotlib.pyplot as plt
 from TwitterSentiment import twitterclient
 import dotenv
+import os
+import praw
+import textblob
 
 ### Load Bearer token
 dotenv.load_dotenv()
 
 ### Page config (Title at top and icon at top )
-st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend")
-
-### Dashboard Title
-st.title("Dashboard")
-
-### Sidebar Title
-st.sidebar.title("Options:")
-
-### Sidebar Dropdown
-option = st.sidebar.selectbox("Select Dashboard:", ("Twitter", "Stocks"))
-
-### Sidebar user Search bar
-
+st.set_page_config(page_title="Tweet Analysis", page_icon="chart_with_upwards_trend", layout='wide')
 
 ### uses css to create styles for each tweet
 def create_tweet_styles():
@@ -47,7 +31,6 @@ def create_tweet_styles():
     </style>
     '''
     st.markdown(tweet_styles, unsafe_allow_html=True)
-
 
 ### Use the class from TwitterSentiment file to get sentiment of tweets
 def main_twitter():
@@ -138,26 +121,26 @@ def main_twitter():
             pass
 
         st.write("---")
-        positive_tweets_percent = (100*len(ptweets)/len(tweets))
-        negative_tweets_percent = (100*len(ntweets)/len(tweets))
-        neutral_tweets_percent = (100*(len(tweets)-(len( ntweets )+len( ptweets)))/len(tweets))
+        positive_tweet_percent = (100*len(ptweets)/len(tweets))
+        negative_tweet_percent = (100*len(ntweets)/len(tweets))
+        neutral_tweet_percent = (100*(len(tweets)-(len( ntweets )+len( ptweets)))/len(tweets))
         
         # NOTE: CLEAN UP ASAP
         labels = ['Positive', 'Negative', 'Neutral']
-        sizes = [positive_tweets_percent, negative_tweets_percent, neutral_tweets_percent]
-        max_percent = max([positive_tweets_percent, negative_tweets_percent, neutral_tweets_percent])
+        sizes = [positive_tweet_percent, negative_tweet_percent, neutral_tweet_percent]
+        max_percent = max([positive_tweet_percent, negative_tweet_percent, neutral_tweet_percent])
         pos_explode = 0
         neg_explode = 0
         neutral_explode = 0
-        if max_percent == positive_tweets_percent:
+        if max_percent == positive_tweet_percent:
             pos_explode = 0.05
-        elif max_percent == negative_tweets_percent:
+        elif max_percent == negative_tweet_percent:
             neg_explode = 0.05
-        elif max_percent == neutral_tweets_percent:
+        elif max_percent == neutral_tweet_percent:
             neutral_explode = 0.05
         explode = [pos_explode,neg_explode,neutral_explode]
         fig1,ax1 = plt.subplots()
-        ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+        ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, textprops=dict(color="w"))
         ax1.axis('equal')
         fig1.set_facecolor('#0e1117')
     
@@ -186,7 +169,7 @@ def main_twitter():
         st.subheader("There were no tweets found.")
         st.write("---")
 
-
+### If twitter phrase starts with '@' then search users
 def for_users():
 
     ## Oauth
@@ -210,9 +193,125 @@ def for_users():
     except:
         st.subheader("That profile could not be found.")
 
+### get text sentiment given any text string
+def get_text_sentiment(text):
+
+    ## Use textblob to analyze sentiment
+
+    analysis = textblob.TextBlob(text)
+    
+    if analysis.sentiment.polarity > 0:
+        return 'positive'
+    elif analysis.sentiment.polarity == 0:
+        return 'neutral'
+    else:
+        return 'negative'
+
+### Make a graph given, pos, neg, and neu sentiments
+def pie_Graph(texts):
+    ptexts = []
+    ntexts = []
+    neutraltexts = []
+
+    texts = [Sub.hot(limit=100)]
+
+    for submission in Sub.hot(limit=100):
+        parsed_text = {}
+        parsed_text['text'] = submission.selftext
+        parsed_text['sentiment'] = get_text_sentiment(submission.selftext)
+        parsed_text['score'] = submission.score
+
+        analysis = textblob.TextBlob(parsed_text['text'])
+
+        if parsed_text['score'] > 0:
+            if parsed_text not in texts:
+                texts.append(parsed_text["sentiment"])
+        else:
+            texts.append(parsed_text["sentiment"])
+
+        if analysis.sentiment.polarity > 0:
+            ptexts.append(parsed_text['sentiment'])
+        elif analysis.sentiment.polarity == 0:
+            neutraltexts.append(parsed_text['sentiment'])
+        elif analysis.sentiment.polarity < 0:
+            ntexts.append(parsed_text['sentiment'])
+
+    positive_text_percent = (100*len(ptexts)/len(texts))
+    negative_text_percent = (100*len(ntexts)/len(texts))
+    neutral_text_percent = (100*(len(texts)-(len( ntexts )+len( ptexts)))/len(texts))
+    
+    # NOTE: CLEAN UP ASAP
+    labels = ['Positive', 'Negative', 'Neutral']
+    sizes = [positive_text_percent, negative_text_percent, neutral_text_percent]
+    max_percent = max([positive_text_percent, negative_text_percent, neutral_text_percent])
+    pos_explode = 0
+    neg_explode = 0
+    neutral_explode = 0
+    if max_percent == positive_text_percent:
+        pos_explode = 0.05
+    elif max_percent == negative_text_percent:
+        neg_explode = 0.05
+    elif max_percent == neutral_text_percent:
+        neutral_explode = 0.05
+    explode = [pos_explode,neg_explode,neutral_explode]
+    fig1,ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, textprops=dict(color="w"))
+    ax1.axis('equal')
+    fig1.set_facecolor('#0e1117')
+
+    st.pyplot(fig1)
+
+def sibar_Stocks():
+    st.sidebar.write("---")
+    st.sidebar.subheader("Stock Analysis: ")
+
+    stock_search = st.sidebar.text_input("Ticker: ", value="TSLA", max_chars=5)
+
+    st.sidebar.markdown("Ticker: " + stock_search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
+
+    def sidebar_tweets(tweets):
+
+        st.sidebar.image(f"https://finviz.com/chart.ashx?t={stock_search}")
+            ## Oauth
+        api = twitterclient()
+        tweets = api.get_tweets(query = stock_search, count = 300)
+        try:
+            for tweet in tweets:
+
+                with st.container():
+
+                    create_tweet_styles()
+
+                    ## Markdown
+                    st.sidebar.image(tweet["profile_pic"])
+                    st.sidebar.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+                    st.sidebar.write(f"Number of likes: {tweet['num_likes']}")
+                    # st.markdown(tweet, unsafe_allow_html=False)
+                    
+                    ## Text
+                    st.sidebar.write(tweet["text"])
+                    st.sidebar.write("---")
+
+        except:
+
+            st.subheader("There were no tweets found.")
+            st.write("---")
+
+    sidebar_tweets(stock_search)
 
 
+### Dashboard Title
+st.title("Dashboard")
 
+### Set default search term
+st.subheader("Search: ")
+search1 = st.text_input(" ")
+
+### Sidebar Title
+st.sidebar.title("Options:")
+
+### Sidebar Dropdown
+option = st.sidebar.selectbox("Select Dashboard:", ("Twitter", "Reddit"))
 
 ### Sidebar dropdown option for twitter, display twitter stats
 if option == "Twitter":
@@ -221,7 +320,7 @@ if option == "Twitter":
     st.subheader("Twitter Stats:")
 
     ### Sidebar dropdown for types of searching
-    search = st.sidebar.text_input("Search a phrase:")
+    search = st.sidebar.text_input("Search a phrase:", value=search1)
     
     ### subheader for stock title
     st.subheader('Phrase: {}'.format(search.upper()))
@@ -235,48 +334,95 @@ if option == "Twitter":
         except TypeError as e:
             st.text(e)
 
-if option == "Stocks":
+## Reddit
+if option == "Reddit":
 
-    st.subheader("Stock Trends")
+    ## subheader
+    st.subheader("Reddit Mentions:")
 
-    search = st.sidebar.text_input("Check a Stock:", value="TSLA", max_chars=5)
-    company_name = yf.Ticker(search).info['longName']
+    sub = st.sidebar.text_input("Input a subreddit:", value=search1)
 
-    st.markdown("Ticker: " + search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
-    st.markdown("Company Name: " + company_name) # NOTE: Change company name to ticker...might need to incorporate some sort of searching a database (of all companies/tickers) function
-    st.image(f"https://finviz.com/chart.ashx?t={search}")
+    phrase = st.sidebar.text_input("Input a phrase:")
 
     try:
-        main_twitter()
-    except TypeError as e:
-        print(e)
+        reddit = praw.Reddit(
+            client_id=os.environ.get("Reddit_token"),
+            client_secret=os.environ.get("Reddit_secret"),
+            user_agent="SentimentAnalysis",
+            )
+
+        Sub = reddit.subreddit(sub)
+        subreddittexts = []
+
+        for submission in Sub.hot(limit=100):
+            if phrase in submission.title or phrase in submission.selftext:
+                subreddittexts.append(submission.selftext)
 
 
+        pie_Graph(Sub)
 
-### wallstreetbets 
-# if option == "Wallstreetbets":
+        for submission in Sub.hot(limit=100):
+            if phrase in submission.title or phrase in submission.selftext:
 
-    ### subheader
-    # st.subheader("Wallstreetbets Mentions:")
+                st.write("Title: ")
+                st.write(submission.title)
+                st.write("Score: ", submission.score)
+                st.write("Sentiment: " + get_text_sentiment(str(submission.selftext)))
+                st.image(submission.url)
+                st.write("Link:")
+                st.write("https://www.reddit.com" + submission.permalink)
 
-### Stocktwits mentions of stock
-# if option == "StockTwits":
+                if submission.selftext:
+                    st.write("Text: ")
+                    st.write(submission.selftext)
+                st.write("---")
 
-#     ### subheader
-#     st.subheader("Stocktwits Mentions:")
+            else:
+                st.write("No submissions found!")
+                break
+            
+    
+    except ValueError as e:
+        st.write("Search for something!")
 
-#     stocktwit = pt.StockTwits()
-#     symbols = stocktwit.search(path='search/symbols', q=search_option.upper())
-#     stock = symbols[0]
 
-# ### display charts and relevant information
-# if option == "Chart":
+### Sidebar stock analysis
 
-#     ### subheader
-#     st.subheader("Charts:")
-#     stock = yf.download(search_option, interval="1d", period="1y")["Close"]
-#     st.line_chart(stock)
+    st.sidebar.write("---")
+    st.sidebar.subheader("Stock Analysis: ")
 
-### display patterns and options
-# if option == "Pattern":
-#     st.subheader("Patterns")
+    stock_search = st.sidebar.text_input("Ticker: ", value="TSLA", max_chars=5)
+
+    st.sidebar.markdown("Ticker: " + stock_search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
+
+    def sidebar_tweets(tweets):
+
+        st.sidebar.image(f"https://finviz.com/chart.ashx?t={stock_search}")
+            ## Oauth
+        api = twitterclient()
+        tweets = api.get_tweets(query = stock_search, count = 300)
+        try:
+            for tweet in tweets:
+
+                with st.container():
+
+                    create_tweet_styles()
+
+                    ## Markdown
+                    st.sidebar.image(tweet["profile_pic"])
+                    st.sidebar.markdown('Username: ' + tweet["screen_name"], unsafe_allow_html=False)
+                    st.sidebar.write(f"Number of likes: {tweet['num_likes']}")
+                    # st.markdown(tweet, unsafe_allow_html=False)
+                    
+                    ## Text
+                    st.sidebar.write(tweet["text"])
+                    st.sidebar.write("---")
+
+        except:
+
+            st.subheader("There were no tweets found.")
+            st.write("---")
+
+    sidebar_tweets(stock_search)
+
+sibar_Stocks()
