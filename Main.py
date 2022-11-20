@@ -240,8 +240,9 @@ def pie_Graph(texts):
 def sibar_Stocks():
     st.sidebar.write("---")
     st.sidebar.subheader("Stock Analysis: ")
+    count = 0
 
-    stock_search = st.sidebar.text_input("Ticker: ", value="TSLA", max_chars=5)
+    stock_search = st.sidebar.text_input("Ticker: ", value="TSLA", max_chars=5, key=(count+1)) # https://discuss.streamlit.io/t/duplicate-widgetid-error/4739/3
 
     st.sidebar.markdown("Ticker: " + stock_search)  # NOTE: RESOLVED...Incorporate a function to change it to company name instead of their ticker.  Makes more user-friendly for people not "stock saavy"
 
@@ -273,6 +274,27 @@ def sibar_Stocks():
 
     sidebar_tweets(stock_search)
 
+def reddit_media(url):
+
+    media = st.expander('Image')
+
+    url_parse = (url).split('/')
+    file_format = url_parse[-1].split('.')
+
+    if url_parse[3] == 'gallery':
+
+        st.write('This post contains multiple images.')
+        st.write(f'Click link to view this post   🡺  {url}')
+
+    elif file_format[-1] == 'jpg' or file_format[-1] == 'png':
+
+        media.image(url)
+        st.write(f'Click link to view this post   🡺  {url}')
+
+    else:
+
+        st.write('This post contains a video.')
+        st.write(f'Click link to view this post   🡺  {url}')
 
 ### Dashboard Title
 st.title("Dashboard")
@@ -318,6 +340,9 @@ if option == "Reddit":
 
     phrase = st.sidebar.text_input("Input a phrase:")
 
+    if 'count' not in st.session_state:
+        st.session_state['count'] = 50
+
     try:
         reddit = praw.Reddit(
             client_id=os.environ.get("Reddit_token"),
@@ -335,27 +360,35 @@ if option == "Reddit":
 
         pie_Graph(Sub)
 
-        for submission in Sub.hot(limit=100):
-            if phrase in submission.title or phrase in submission.selftext:
+        def post_generator(post_count):
+            for submission in Sub.hot(limit=post_count):
+                if phrase in submission.title or phrase in submission.selftext:
 
-                st.write("Title: ")
-                st.write(submission.title)
-                st.write("Score: ", submission.score)
-                st.write("Sentiment: " + get_text_sentiment(str(submission.selftext)))
-                st.image(submission.url)
-                st.write("Link:")
-                st.write("https://www.reddit.com" + submission.permalink)
+                    st.write("Title: ")
+                    st.write(submission.title)
+                    st.write("Score: ", submission.score)
+                    st.write("Sentiment: " + get_text_sentiment(str(submission.selftext)))
 
-                if submission.selftext:
-                    st.write("Text: ")
-                    st.write(submission.selftext)
-                st.write("---")
+                    if submission.selftext:
+                        st.write("Text: ")
+                        st.markdown(submission.selftext)
 
-            else:
-                st.write("No submissions found!")
-                break
-            
-    
+                    reddit_media(submission.url)
+
+                    st.write("---")
+
+                else:
+                    st.write("No submissions found!")
+                    break
+
+        if st.sidebar.button('load more posts'):
+            post_generator(st.session_state['count'])
+            st.session_state.count += 50
+
+        post_generator(100)
+
+
+
     except ValueError as e:
         st.write("Search for something!")
 
